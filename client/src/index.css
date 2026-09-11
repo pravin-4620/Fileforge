@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: Manrope, sans-serif; color:#151b1a; background:#f6f8f8; font-synthesis:none; }
+* { box-sizing:border-box; }
+html { min-width:320px; overflow-x:clip; }
+body { margin:0; min-width:320px; min-height:100vh; min-height:100dvh; overflow-x:clip; }
+#root { min-height:100vh; min-height:100dvh; }
+img, video, svg { max-width:100%; }
+button, input, select { font:inherit; }
+button, a, input, select { -webkit-tap-highlight-color:transparent; }
+button, a, select { touch-action:manipulation; }
+.mono { font-family:'DM Mono', monospace; }
+.dot-grid { background-image:radial-gradient(rgba(21,27,26,.14) 1px,transparent 1px); background-size:18px 18px; }
+.dark .dot-grid { background-image:radial-gradient(rgba(255,255,255,.12) 1px,transparent 1px); }
+.noise:before { content:''; position:absolute; inset:0; pointer-events:none; opacity:.035; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E"); }
+.scrollbar-none::-webkit-scrollbar { display:none; }
+.animate-enter { animation:enter .45s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes enter { from { opacity:0; transform:translateY(10px) } }
+@keyframes float { 50% { transform:translateY(-7px) } }
+.float { animation:float 4s ease-in-out infinite; }
+
+.app-content { container: app-content / inline-size; min-width:0; }
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:1rem; }
+.dashboard-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr); gap:1.25rem; }
+.server-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr)); gap:1rem; }
+.youtube-format-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.5rem; }
+.file-row { display:grid; grid-template-columns:48px minmax(150px,1.35fr) minmax(180px,1fr) 144px 32px; align-items:center; gap:1rem; }
+.history-mobile { display:none; }
+.page-heading { font-size:2.5rem; font-size:clamp(1.85rem,4cqi,2.5rem); line-height:1.08; }
+.converter-tabs { max-width:100%; overflow-x:auto; scrollbar-width:none; }
+
+@container app-content (max-width: 860px) {
+  .dashboard-grid { grid-template-columns:1fr; }
+  .file-row { grid-template-columns:48px minmax(0,1fr) 32px; gap:.75rem; }
+  .file-row-name { min-width:0; }
+  .file-row-convert { grid-column:2 / 4; }
+  .file-row-status { grid-column:2 / 3; width:100%; }
+  .file-row-remove { grid-column:3; grid-row:1; }
+}
+
+@container app-content (max-width: 680px) {
+  .youtube-format-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .history-desktop { display:none; }
+  .history-mobile { display:grid; }
+}
+
+@container app-content (max-width: 430px) {
+  .file-row { grid-template-columns:40px minmax(0,1fr) 40px; padding:.875rem; }
+  .file-row-convert { grid-column:1 / 4; }
+  .file-row-status { grid-column:1 / 4; }
+  .youtube-format-grid { grid-template-columns:1fr 1fr; }
+  .page-heading { font-size:1.8rem; }
+}
+
+@media (max-width: 479px) {
+  .landing-actions { display:grid; grid-template-columns:1fr; }
+  .landing-actions > * { justify-content:center; text-align:center; }
+}
+
+@supports (padding: max(0px)) {
+  @media (max-width: 1023px) {
+    .app-header { padding-left:max(1rem,env(safe-area-inset-left)); padding-right:max(1rem,env(safe-area-inset-right)); }
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .app-header { height:3.75rem; }
+  .sidebar-nav { margin-top:1.25rem; }
+  .sidebar-nav a { padding-top:.6rem; padding-bottom:.6rem; }
+  .sidebar-profile { margin-top:1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; }
+}

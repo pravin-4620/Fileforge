@@ -1,0 +1,5 @@
+import { createContext, useContext, useEffect, useState } from 'react'
+import api from '../services/api'
+const AuthContext=createContext(null)
+export function AuthProvider({children}){ const [user,setUser]=useState(()=>JSON.parse(localStorage.getItem('fileforge_user')||'null')); const [loading,setLoading]=useState(Boolean(localStorage.getItem('fileforge_token'))); useEffect(()=>{ if(!loading)return; api.get('/auth/profile').then(({data})=>{setUser(data.user);localStorage.setItem('fileforge_user',JSON.stringify(data.user))}).catch(()=>setUser(null)).finally(()=>setLoading(false))},[loading]); const auth=async(mode,payload)=>{const {data}=await api.post(`/auth/${mode}`,payload);localStorage.setItem('fileforge_token',data.token);localStorage.setItem('fileforge_user',JSON.stringify(data.user));setUser(data.user);return data}; const logout=()=>{localStorage.removeItem('fileforge_token');localStorage.removeItem('fileforge_user');setUser(null)}; return <AuthContext.Provider value={{user,loading,login:p=>auth('login',p),register:p=>auth('register',p),logout}}>{children}</AuthContext.Provider> }
+export const useAuth=()=>useContext(AuthContext)

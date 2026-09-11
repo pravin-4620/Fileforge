@@ -1,0 +1,2 @@
+import { HiOutlineArrowsUpDown } from 'react-icons/hi2'
+export default function Logo({light=false,compact=false}){return <div className="flex items-center gap-2.5"><span className={`grid place-items-center w-9 h-9 rounded-xl ${light?'bg-mint text-ink':'bg-ink text-mint dark:bg-mint dark:text-ink'}`}><HiOutlineArrowsUpDown className="text-xl rotate-45"/></span>{!compact&&<span className={`font-extrabold tracking-[-.04em] text-xl ${light?'text-white':'text-ink dark:text-white'}`}>fileforge<span className="text-teal dark:text-mint">.</span></span>}</div>}

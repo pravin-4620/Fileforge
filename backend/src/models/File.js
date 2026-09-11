@@ -1,0 +1,3 @@
+import mongoose from 'mongoose'
+const schema=new mongoose.Schema({filename:{type:String,required:true},originalName:{type:String,required:true},originalFormat:{type:String,required:true},outputFormat:String,mimeType:String,category:String,fileSize:{type:Number,required:true},storagePath:{type:String,required:true},status:{type:String,enum:['uploaded','processing','completed','failed'],default:'uploaded'},createdBy:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true,index:true},expiresAt:{type:Date,index:{expireAfterSeconds:0}}},{timestamps:true})
+export default mongoose.model('File',schema)

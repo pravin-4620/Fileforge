@@ -1,0 +1,14 @@
+{
+  "name": "universal-file-converter",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["client", "backend"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev -w backend\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

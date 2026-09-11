@@ -1,0 +1,4 @@
+import { HiOutlinePhoto,HiOutlineVideoCamera,HiOutlineMusicalNote,HiOutlineDocumentText,HiOutlineArchiveBox } from 'react-icons/hi2'
+const map={image:HiOutlinePhoto,video:HiOutlineVideoCamera,audio:HiOutlineMusicalNote,document:HiOutlineDocumentText,archive:HiOutlineArchiveBox,ebook:HiOutlineDocumentText}
+const tone={image:'bg-[#e3f8b9] text-[#466307]',video:'bg-[#ddd7ff] text-[#4d3bc0]',audio:'bg-[#ffd6c8] text-[#a63f1c]',document:'bg-[#d3edf5] text-[#17637a]',archive:'bg-[#ffe9ac] text-[#845d00]',ebook:'bg-[#d3edf5] text-[#17637a]'}
+export default function FileGlyph({category='document',small=false}){const Icon=map[category]||map.document;return <span className={`grid shrink-0 place-items-center rounded-xl ${small?'w-9 h-9':'w-12 h-12'} ${tone[category]}`}><Icon className={small?'text-lg':'text-2xl'}/></span>}
