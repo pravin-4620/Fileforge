@@ -35,14 +35,31 @@ async function textToPdf(input, out) {
 
 async function libreOfficeConvert(input, target, outputDir) {
   const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'fileforge-lo-profile-'))
+  const targetSpec = target === 'md' ? 'txt:Text' : target
+  const generatedExtension = target === 'md' ? 'txt' : target
+  const generated = path.join(outputDir, `${path.parse(input).name}.${generatedExtension}`)
   try {
     await run(libreOfficeBinary(), [
       `-env:UserInstallation=${pathToFileURL(profile).href}`,
-      '--headless', '--convert-to', target, '--outdir', outputDir, input,
+      '--headless', '--convert-to', targetSpec, '--outdir', outputDir, input,
     ])
-    return path.join(outputDir, `${path.parse(input).name}.${target}`)
+    try { await fs.access(generated) }
+    catch { throw Object.assign(new Error(`Document conversion did not produce a ${target.toUpperCase()} file. The source may be damaged or password-protected.`), { status: 422 }) }
+    return generated
   } finally {
     await fs.rm(profile, { recursive: true, force: true })
+  }
+}
+
+async function convertWithLibreOffice(input, target) {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'fileforge-document-'))
+  const final = outputPath(input, target)
+  try {
+    const generated = await libreOfficeConvert(input, target, workspace)
+    await fs.rename(generated, final)
+    return final
+  } finally {
+    await fs.rm(workspace, { recursive: true, force: true })
   }
 }
 
@@ -111,9 +128,6 @@ export default {
       await textToPdf(input, out)
       return out
     }
-    const generated = await libreOfficeConvert(input, target, path.dirname(input))
-    const final = outputPath(input, target)
-    await fs.rename(generated, final)
-    return final
+    return convertWithLibreOffice(input, target)
   },
 }
