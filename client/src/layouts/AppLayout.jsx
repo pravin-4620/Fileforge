@@ -8,6 +8,7 @@ import {
   HiOutlineClock,
   HiOutlineCog6Tooth,
   HiOutlineMoon,
+  HiOutlineLanguage,
   HiOutlineShieldCheck,
   HiOutlineSquares2X2,
   HiOutlineSun,
@@ -20,6 +21,7 @@ import { useAuth } from '../context/AuthContext'
 const links = [
   ['/app', HiOutlineSquares2X2, 'Overview', true],
   ['/app/convert', HiOutlineArrowsRightLeft, 'Convert'],
+  ['/app/simple-english', HiOutlineLanguage, 'Simple English'],
   ['/app/history', HiOutlineClock, 'History'],
   ['/app/settings', HiOutlineCog6Tooth, 'Settings'],
 ]

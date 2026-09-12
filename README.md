@@ -8,6 +8,7 @@ Fileforge is a full-stack conversion workspace built with React, Vite, Tailwind 
 - Responsive React dashboard, drag/drop and folder uploads, cancellation, retry states, concurrent batches, and batch output selection
 - MongoDB-backed file and conversion records with search, filter, repeat download, and deletion
 - YouTube link inspection and single-video downloads to MP4, WebM, MP3, or M4A via yt-dlp
+- Simple English turns conversational project explanations into structured, downloadable AI-ready Markdown prompts
 - Converter plugins for ONLYOFFICE, Sharp/ImageMagick, FFmpeg, LibreOffice/PDF-Lib/pdf2docx, and 7-Zip
 - Bounded in-process conversion queue, rate limiting, validation, secure headers, logging, and hourly cleanup
 - Admin-only analytics and service status
@@ -23,6 +24,7 @@ Fileforge is a full-stack conversion workspace built with React, Vite, Tailwind 
 - 7-Zip (`7z`) for archive paths
 - yt-dlp with its default extras for YouTube link downloads
 - Python 3.10+ with `backend/requirements.txt` for layout-aware PDF-to-DOCX conversion
+- An OpenAI API key for the Simple English feature
 
 Sharp is installed as a Node dependency and handles the common image formats. Some uncommon codecs, notably HEIC/HEIF, depend on the codecs available in the installed Sharp/libvips build.
 
@@ -101,6 +103,8 @@ The included deployment files are set up for Vercel hosting the React client and
    MONGODB_URI=<your MongoDB Atlas URI>
    CLIENT_URL=https://fileforge-client.vercel.app,http://localhost:5173
    GOOGLE_CLIENT_ID=<your Google OAuth Web Client ID>
+   OPENAI_API_KEY=<your server-side OpenAI API key>
+   OPENAI_MODEL=gpt-5-mini
    YTDLP_JS_RUNTIME=node
    ```
 
@@ -146,6 +150,7 @@ Conversions are queued with configurable concurrency (`CONVERSION_CONCURRENCY`, 
 | GET | `/api/files` | List files |
 | DELETE | `/api/files/:id` | Delete file |
 | POST | `/api/convert` | Upload and convert one file |
+| POST | `/api/simple-english` | Structure an explanation as an AI-ready Markdown prompt |
 | GET | `/api/history` | Search/filter conversion history |
 | DELETE | `/api/history/:id` | Remove conversion and stored bytes |
 | POST | `/api/files/download-all` | Stream selected outputs as ZIP |

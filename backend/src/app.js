@@ -13,6 +13,7 @@ import fileRoutes from './routes/fileRoutes.js'
 import conversionRoutes from './routes/conversionRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import youtubeRoutes from './routes/youtubeRoutes.js'
+import simpleEnglishRoutes from './routes/simpleEnglishRoutes.js'
 import { errorHandler, notFound } from './middleware/error.js'
 import { onlyOfficeInput } from './controllers/internalController.js'
 
@@ -65,6 +66,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/files', fileRoutes)
 app.use('/api', conversionRoutes)
 app.use('/api/youtube', youtubeRoutes)
+app.use('/api/simple-english', simpleEnglishRoutes)
 app.use('/api/admin', adminRoutes)
 
 if (process.env.SERVE_CLIENT === 'true') {
