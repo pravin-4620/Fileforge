@@ -4,7 +4,7 @@ Fileforge is a full-stack conversion workspace built with React, Vite, Tailwind 
 
 ## What is included
 
-- JWT authentication with bcrypt password hashing and protected routes
+- JWT authentication with bcrypt password hashing, Google sign-in, and protected routes
 - Responsive React dashboard, drag/drop and folder uploads, cancellation, retry states, concurrent batches, and batch output selection
 - MongoDB-backed file and conversion records with search, filter, repeat download, and deletion
 - YouTube link inspection and single-video downloads to MP4, WebM, MP3, or M4A via yt-dlp
@@ -82,6 +82,39 @@ NODE_ENV=production npm start
 
 Serve `client/dist` behind a CDN or reverse proxy, route `/api` to the Express service, and mount `backend/uploads` on encrypted ephemeral or object-backed storage. Use a managed MongoDB replica set, rotate the JWT secret, enforce HTTPS, and set `CLIENT_URL` to the exact public origin.
 
+## Vercel + Render deployment
+
+The included deployment files are set up for Vercel hosting the React client and Render hosting the Express API.
+
+1. Create a MongoDB Atlas database and copy the connection string.
+2. Create a Google OAuth Web Client in Google Cloud Console. Add these authorized JavaScript origins:
+
+   ```text
+   http://localhost:5173
+   https://your-vercel-app.vercel.app
+   ```
+
+3. Deploy the backend on Render from this repository. Render will read `render.yaml` and build the Docker image with FFmpeg, ImageMagick, LibreOffice, 7-Zip, Python PDF tools, and yt-dlp.
+4. Add these Render environment variables:
+
+   ```text
+   MONGODB_URI=<your MongoDB Atlas URI>
+   CLIENT_URL=https://your-vercel-app.vercel.app,http://localhost:5173
+   GOOGLE_CLIENT_ID=<your Google OAuth Web Client ID>
+   ```
+
+   Keep `SERVE_CLIENT=false` on Render because Vercel serves the frontend.
+
+5. Deploy the frontend on Vercel with root directory set to `client`, build command `npm run build`, and output directory `dist`.
+6. Add these Vercel environment variables:
+
+   ```text
+   VITE_API_URL=https://your-render-service.onrender.com/api
+   VITE_GOOGLE_CLIENT_ID=<the same Google OAuth Web Client ID>
+   ```
+
+7. After Vercel gives you the final public URL, update Render `CLIENT_URL` and the Google OAuth authorized origins with that exact Vercel URL.
+
 ## Converter architecture
 
 `backend/src/converters/index.js` is the registry. Each converter declares its category and supported formats and implements `canConvert(from, to)` and `convert(input, target, source)`. Add a new plugin by implementing that interface and registering it in the plugins array.
@@ -98,6 +131,7 @@ Conversions are queued with configurable concurrency (`CONVERSION_CONCURRENCY`).
 | --- | --- | --- |
 | POST | `/api/auth/register` | Create account |
 | POST | `/api/auth/login` | Log in |
+| POST | `/api/auth/google` | Sign in with Google ID token |
 | GET | `/api/auth/profile` | Current profile |
 | POST | `/api/files/upload` | Upload up to 20 files |
 | GET | `/api/files` | List files |

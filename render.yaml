@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: fileforge-api
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_CLIENT
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: ONLYOFFICE_URL
+        sync: false
+      - key: ONLYOFFICE_INTERNAL_URL
+        sync: false
+      - key: ONLYOFFICE_JWT_SECRET
+        sync: false
