@@ -1,6 +1,57 @@
 import sharp from 'sharp'
-import { outputPath,assertSupported,run } from './base.js'
-const supported=['jpg','jpeg','png','webp','avif','heic','bmp','tiff','svg','ico']
-sharp.cache({memory:32,files:20,items:100})
-sharp.concurrency(Math.max(1,Number(process.env.SHARP_CONCURRENCY||1)))
-export default {category:'image',supported,canConvert:(from,to)=>supported.includes(from)&&supported.includes(to),async convert(input,target){assertSupported(target,supported,'Image converter');const normalized=target==='jpg'?'jpeg':target;const out=outputPath(input,target);if(['heic','bmp','svg','ico'].includes(target)){await run(process.env.IMAGEMAGICK_PATH||'magick',[input,'-auto-orient',out]);return out}let pipeline=sharp(input,{failOn:'warning'}).rotate();if(normalized==='jpeg')pipeline=pipeline.jpeg({quality:90,mozjpeg:true});else if(normalized==='png')pipeline=pipeline.png({compressionLevel:8});else if(normalized==='webp')pipeline=pipeline.webp({quality:88});else if(normalized==='avif')pipeline=pipeline.avif({quality:55});else if(normalized==='tiff')pipeline=pipeline.tiff({quality:90});await pipeline.toFile(out);return out}}
+import { assertSupported, outputPath, run } from './base.js'
+
+const supported = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'heic', 'bmp', 'tiff', 'svg', 'ico']
+const imageMagickTargets = new Set(['heic', 'bmp', 'svg', 'ico'])
+const lossyTargets = new Set(['jpg', 'jpeg', 'webp', 'avif', 'heic'])
+
+sharp.cache({ memory: 32, files: 20, items: 100 })
+sharp.concurrency(Math.max(1, Number(process.env.SHARP_CONCURRENCY || 1)))
+
+function imageMagickArgs(input, target, output) {
+  const args = [input, '-auto-orient', '-strip']
+  if (lossyTargets.has(target)) args.push('-quality', target === 'avif' ? '60' : '90')
+  args.push(output)
+  return args
+}
+
+async function convertWithImageMagick(input, target, output) {
+  await run(
+    process.env.IMAGEMAGICK_PATH || 'magick',
+    imageMagickArgs(input, target, output),
+  )
+}
+
+export default {
+  category: 'image',
+  supported,
+  canConvert: (from, to) => supported.includes(from) && supported.includes(to),
+
+  async convert(input, target, source) {
+    assertSupported(target, supported, 'Image converter')
+
+    const normalizedSource = String(source || '').toLowerCase()
+    const normalizedTarget = target === 'jpg' ? 'jpeg' : target
+    const output = outputPath(input, target)
+
+    // libvips (used by Sharp) cannot decode some valid Apple HEIC files and
+    // reports `bad seek`. ImageMagick/libheif handles those files correctly.
+    // Route HEIC input there immediately so conversions do not waste a worker
+    // retrying a decoder that is known to fail for this HEIC variant.
+    if (normalizedSource === 'heic' || imageMagickTargets.has(target)) {
+      await convertWithImageMagick(input, target, output)
+      return output
+    }
+
+    let pipeline = sharp(input, { failOn: 'warning' }).rotate()
+
+    if (normalizedTarget === 'jpeg') pipeline = pipeline.jpeg({ quality: 90, mozjpeg: true })
+    else if (normalizedTarget === 'png') pipeline = pipeline.png({ compressionLevel: 8 })
+    else if (normalizedTarget === 'webp') pipeline = pipeline.webp({ quality: 88 })
+    else if (normalizedTarget === 'avif') pipeline = pipeline.avif({ quality: 55 })
+    else if (normalizedTarget === 'tiff') pipeline = pipeline.tiff({ quality: 90 })
+
+    await pipeline.toFile(output)
+    return output
+  },
+}
