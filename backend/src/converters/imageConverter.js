@@ -1,11 +1,16 @@
 import fs from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
 import { assertSupported, outputPath, run } from './base.js'
 
 const supported = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'heic', 'bmp', 'tiff', 'svg', 'ico']
 const imageMagickTargets = new Set(['heic', 'bmp', 'svg', 'ico'])
 const lossyTargets = new Set(['jpg', 'jpeg', 'webp', 'avif', 'heic'])
-const heifDirectTargets = new Set(['jpg', 'jpeg', 'png', 'webp', 'tif', 'tiff'])
+const heicDecoderScript = fileURLToPath(new URL('./decodeHeic.py', import.meta.url))
+const pythonPath = process.env.HEIC_DECODER_PYTHON
+  || process.env.PYTHON_PATH
+  || path.resolve(process.cwd(), '.venv', 'bin', 'python')
 
 sharp.cache({ memory: 32, files: 20, items: 100 })
 sharp.concurrency(Math.max(1, Number(process.env.SHARP_CONCURRENCY || 1)))
@@ -38,19 +43,16 @@ function sharpPipeline(input, target) {
 }
 
 async function decodeHeic(input, output) {
-  await run(process.env.HEIF_CONVERT_PATH || 'heif-convert', ['-q', '90', input, output])
+  await run(pythonPath, [heicDecoderScript, input, output])
 }
 
 async function convertHeic(input, target, output) {
-  if (heifDirectTargets.has(target)) {
-    await decodeHeic(input, output)
-    return
-  }
-
   const decodedPng = outputPath(input, 'png')
   try {
     await decodeHeic(input, decodedPng)
-    if (imageMagickTargets.has(target)) {
+    if (target === 'png') {
+      await fs.rename(decodedPng, output)
+    } else if (imageMagickTargets.has(target)) {
       await convertWithImageMagick(decodedPng, target, output)
     } else {
       await sharpPipeline(decodedPng, target).toFile(output)
@@ -71,9 +73,8 @@ export default {
     const normalizedSource = String(source || '').toLowerCase()
     const output = outputPath(input, target)
 
-    // libvips (used by Sharp) cannot decode some valid Apple HEIC files and
-    // reports `bad seek`. Decode HEIC with libheif's dedicated CLI instead of
-    // relying on optional ImageMagick delegates that vary between hosts.
+    // libvips and distro libheif builds can reject valid Apple HEIC metadata.
+    // Decode with the bundled pillow-heif wheel so production is host-stable.
     if (normalizedSource === 'heic') {
       await convertHeic(input, target, output)
       return output
