@@ -56,8 +56,11 @@ async function convertWithLibreOffice(input, target) {
   const final = outputPath(input, target)
   try {
     const generated = await libreOfficeConvert(input, target, workspace)
-    await fs.rename(generated, final)
+    await fs.copyFile(generated, final)
     return final
+  } catch (error) {
+    await fs.rm(final, { force: true }).catch(() => {})
+    throw error
   } finally {
     await fs.rm(workspace, { recursive: true, force: true })
   }
@@ -102,8 +105,11 @@ async function convertPdf(input, target) {
     const textInput = path.join(workspace, 'document.txt')
     await fs.writeFile(textInput, text, 'utf8')
     const generated = await libreOfficeConvert(textInput, target, workspace)
-    await fs.rename(generated, final)
+    await fs.copyFile(generated, final)
     return final
+  } catch (error) {
+    await fs.rm(final, { force: true }).catch(() => {})
+    throw error
   } finally {
     await fs.rm(workspace, { recursive: true, force: true })
   }
