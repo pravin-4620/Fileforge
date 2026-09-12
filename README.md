@@ -21,7 +21,7 @@ Fileforge is a full-stack conversion workspace built with React, Vite, Tailwind 
 - LibreOffice for Office, PDF, ODT, and EPUB paths
 - Docker Desktop for the primary ONLYOFFICE document conversion service
 - 7-Zip (`7z`) for archive paths
-- yt-dlp for YouTube link downloads
+- yt-dlp with its default extras for YouTube link downloads
 - Python 3.10+ with `backend/requirements.txt` for layout-aware PDF-to-DOCX conversion
 
 Sharp is installed as a Node dependency and handles the common image formats. Some uncommon codecs, notably HEIC/HEIF, depend on the codecs available in the installed Sharp/libvips build.
@@ -101,9 +101,18 @@ The included deployment files are set up for Vercel hosting the React client and
    MONGODB_URI=<your MongoDB Atlas URI>
    CLIENT_URL=https://fileforge-client.vercel.app,http://localhost:5173
    GOOGLE_CLIENT_ID=<your Google OAuth Web Client ID>
+   YTDLP_JS_RUNTIME=node
    ```
 
    Keep `SERVE_CLIENT=false` on Render because Vercel serves the frontend.
+
+   YouTube may block cloud-hosted Render IPs with a "Sign in to confirm you're not a bot" challenge. If that happens, export cookies from a dedicated YouTube account into `youtube-cookies.txt`, add it to Render as a Secret File, and set:
+
+   ```text
+   YTDLP_COOKIES_PATH=/etc/secrets/youtube-cookies.txt
+   ```
+
+   Never commit cookies to GitHub. Treat them like passwords, use a dedicated account, and rotate them if they are exposed.
 
 5. Deploy the frontend on Vercel with root directory set to `client`, build command `npm run build`, and output directory `dist`.
 6. Add these Vercel environment variables:
@@ -121,7 +130,7 @@ The included deployment files are set up for Vercel hosting the React client and
 
 Office conversions first use the JWT-protected ONLYOFFICE DocumentServer container and fall back to LibreOffice if that service is unavailable. Supported presentation input includes PPTX-to-PDF with slide layout, images, and text rendered by the office engine. PDF-to-DOCX uses the layout-aware local `pdf2docx` engine and falls back to text reconstruction for PDFs it cannot parse. Scanned PDFs without a text layer require a separate OCR engine.
 
-The YouTube downloader accepts HTTPS URLs from YouTube domains only, disables playlists and local yt-dlp configuration, and enforces the configured maximum file size. Users should only download media they own or have permission to save.
+The YouTube downloader accepts HTTPS URLs from YouTube domains only, disables playlists and local yt-dlp configuration, runs yt-dlp with a JavaScript runtime for current YouTube extraction, optionally reads cookies from `YTDLP_COOKIES_PATH`, and enforces the configured maximum file size. Users should only download media they own or have permission to save.
 
 Conversions are queued with configurable concurrency (`CONVERSION_CONCURRENCY`, default `1` for memory-safe production operation). The client warms sleeping Render instances before uploading and submits batch items sequentially. Records transition through `queued`, `processing`, `completed`, or `failed`. Upload and output files expire after `FILE_RETENTION_HOURS`; the database retains the audit record until the user deletes it.
 
