@@ -1,2 +1,2 @@
 class ConversionQueue{constructor(concurrency=2){this.concurrency=concurrency;this.active=0;this.waiting=[]}add(task){return new Promise((resolve,reject)=>{this.waiting.push({task,resolve,reject});this.next()})}next(){while(this.active<this.concurrency&&this.waiting.length){const job=this.waiting.shift();this.active++;job.task().then(job.resolve,job.reject).finally(()=>{this.active--;this.next()})}}get size(){return this.waiting.length}get running(){return this.active}}
-export const conversionQueue=new ConversionQueue(Number(process.env.CONVERSION_CONCURRENCY||2))
+export const conversionQueue=new ConversionQueue(Math.max(1,Number(process.env.CONVERSION_CONCURRENCY||1)))

@@ -1,4 +1,6 @@
 import sharp from 'sharp'
 import { outputPath,assertSupported,run } from './base.js'
 const supported=['jpg','jpeg','png','webp','avif','heic','bmp','tiff','svg','ico']
+sharp.cache({memory:32,files:20,items:100})
+sharp.concurrency(Math.max(1,Number(process.env.SHARP_CONCURRENCY||1)))
 export default {category:'image',supported,canConvert:(from,to)=>supported.includes(from)&&supported.includes(to),async convert(input,target){assertSupported(target,supported,'Image converter');const normalized=target==='jpg'?'jpeg':target;const out=outputPath(input,target);if(['heic','bmp','svg','ico'].includes(target)){await run(process.env.IMAGEMAGICK_PATH||'magick',[input,'-auto-orient',out]);return out}let pipeline=sharp(input,{failOn:'warning'}).rotate();if(normalized==='jpeg')pipeline=pipeline.jpeg({quality:90,mozjpeg:true});else if(normalized==='png')pipeline=pipeline.png({compressionLevel:8});else if(normalized==='webp')pipeline=pipeline.webp({quality:88});else if(normalized==='avif')pipeline=pipeline.avif({quality:55});else if(normalized==='tiff')pipeline=pipeline.tiff({quality:90});await pipeline.toFile(out);return out}}

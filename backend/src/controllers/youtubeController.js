@@ -44,7 +44,7 @@ export async function youtubeDownload(req,res) {
   const prefix = `youtube-${crypto.randomUUID()}`
   const uploadRoot = path.resolve('uploads')
   const template = path.join(uploadRoot, `${prefix}-%(title).80B-%(id)s.%(ext)s`)
-  const args = ['--ignore-config', '--no-playlist', '--restrict-filenames', '--max-filesize', `${process.env.MAX_FILE_SIZE_MB || 500}M`, '--print', 'after_move:filepath', '-o', template]
+  const args = ['--ignore-config', '--no-playlist', '--restrict-filenames', '--max-filesize', `${process.env.MAX_FILE_SIZE_MB || 100}M`, '--print', 'after_move:filepath', '-o', template]
   if (target === 'mp3' || target === 'm4a') args.push('-x', '--audio-format', target, '--audio-quality', '0')
   else if (target === 'mp4') args.push('-f', 'bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/b', '--merge-output-format', 'mp4')
   else args.push('-f', 'bv*[ext=webm][height<=1080]+ba[ext=webm]/b[ext=webm][height<=1080]/b', '--merge-output-format', 'webm')

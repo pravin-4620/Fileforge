@@ -15,7 +15,15 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: CLIENT_URL
-        sync: false
+        value: https://fileforge-client.vercel.app,http://localhost:5173
+      - key: MAX_FILE_SIZE_MB
+        value: "100"
+      - key: CONVERSION_CONCURRENCY
+        value: "1"
+      - key: FFMPEG_THREADS
+        value: "1"
+      - key: SHARP_CONCURRENCY
+        value: "1"
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: ONLYOFFICE_URL

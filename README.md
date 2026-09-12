@@ -99,7 +99,7 @@ The included deployment files are set up for Vercel hosting the React client and
 
    ```text
    MONGODB_URI=<your MongoDB Atlas URI>
-   CLIENT_URL=https://your-vercel-app.vercel.app,http://localhost:5173
+   CLIENT_URL=https://fileforge-client.vercel.app,http://localhost:5173
    GOOGLE_CLIENT_ID=<your Google OAuth Web Client ID>
    ```
 
@@ -123,7 +123,7 @@ Office conversions first use the JWT-protected ONLYOFFICE DocumentServer contain
 
 The YouTube downloader accepts HTTPS URLs from YouTube domains only, disables playlists and local yt-dlp configuration, and enforces the configured maximum file size. Users should only download media they own or have permission to save.
 
-Conversions are queued with configurable concurrency (`CONVERSION_CONCURRENCY`). Records transition through `queued`, `processing`, `completed`, or `failed`. Upload and output files expire after `FILE_RETENTION_HOURS`; the database retains the audit record until the user deletes it.
+Conversions are queued with configurable concurrency (`CONVERSION_CONCURRENCY`, default `1` for memory-safe production operation). The client warms sleeping Render instances before uploading and submits batch items sequentially. Records transition through `queued`, `processing`, `completed`, or `failed`. Upload and output files expire after `FILE_RETENTION_HOURS`; the database retains the audit record until the user deletes it.
 
 ## API summary
 

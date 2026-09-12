@@ -5,13 +5,14 @@ import {
   HiArrowDownTray, HiOutlineArrowPath, HiOutlineCloudArrowUp, HiOutlineFolderOpen,
   HiOutlineLink, HiOutlinePause, HiOutlinePlay, HiOutlineTrash, HiOutlineXMark,
 } from 'react-icons/hi2'
-import api from '../services/api'
+import api, { apiErrorMessage, ensureApiReady } from '../services/api'
 import FileGlyph from '../components/FileGlyph'
 import { categoryOf, formats, prettyBytes } from '../utils/formats'
 import { downloadConversion } from '../utils/download'
 
 const makeItem = file => ({ id: crypto.randomUUID(), file, category: categoryOf(file), status: 'ready', progress: 0, target: '', result: null, error: '' })
 const extensionOf = file => file.name.split('.').pop().toUpperCase()
+const maxFileSizeMb = Math.max(1, Number(import.meta.env.VITE_MAX_FILE_SIZE_MB || 100))
 const targetFormatsFor = item => item.category === 'document' && extensionOf(item.file) === 'PPTX'
   ? ['PDF']
   : formats[item.category] || formats.document
@@ -21,9 +22,10 @@ export default function Converter() {
   const [items, setItems] = useState([])
   const [batchTarget, setBatchTarget] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [warming, setWarming] = useState(false)
   const controllers = useRef(new Set())
   const onDrop = useCallback(files => setItems(old => [...old, ...files.map(makeItem)]), [])
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({ onDrop, noClick: true, noKeyboard: true, maxSize: 500 * 1024 * 1024, onDropRejected: r => toast.error(`${r.length} file(s) exceed the limit`) })
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({ onDrop, noClick: true, noKeyboard: true, maxSize: maxFileSizeMb * 1024 * 1024, onDropRejected: r => toast.error(`${r.length} file(s) exceed the ${maxFileSizeMb} MB limit`) })
   const compatible = useMemo(() => {
     if (!items.length) return []
     const [first, ...remaining] = items.map(targetFormatsFor)
@@ -52,7 +54,7 @@ export default function Converter() {
       setItems(xs => xs.map(x => x.id === item.id ? { ...x, status: 'completed', progress: 100, result: data.conversion } : x))
       toast.success(`${item.file.name} is ready`)
     } catch (error) {
-      const message = error.code === 'ERR_CANCELED' ? 'Cancelled' : error.response?.data?.message || 'Conversion failed'
+      const message = apiErrorMessage(error, 'Conversion failed')
       setItems(xs => xs.map(x => x.id === item.id ? { ...x, status: 'failed', progress: 0, error: message } : x))
       toast.error(message)
     } finally {
@@ -63,9 +65,22 @@ export default function Converter() {
   const convert = async () => {
     const queue = items.filter(x => x.status !== 'completed' && (batchTarget || x.target))
     if (!queue.length) return toast.error('Choose an output format first')
+    setWarming(true)
+    try {
+      await ensureApiReady()
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Could not reach the conversion server'))
+      return
+    } finally {
+      setWarming(false)
+    }
     setProcessing(true)
-    await Promise.all(queue.map(convertOne))
-    setProcessing(false)
+    try {
+      // A single worker keeps LibreOffice, FFmpeg, and Sharp inside small-host memory limits.
+      for (const item of queue) await convertOne(item)
+    } finally {
+      setProcessing(false)
+    }
   }
   const cancel = () => controllers.current.forEach(controller => controller.abort())
   const downloadAll = async () => {
@@ -89,12 +104,12 @@ export default function Converter() {
     </div>
     {mode === 'youtube' ? <YoutubePanel /> : <>
       <div {...getRootProps()} className={`relative mt-5 overflow-hidden rounded-2xl border-2 border-dashed p-5 text-center transition sm:rounded-[1.75rem] sm:p-8 lg:p-12 ${isDragActive ? 'scale-[1.01] border-teal bg-teal/10' : 'border-black/10 bg-white dark:border-white/10 dark:bg-[#18201f]'}`}>
-        <input {...getInputProps()} /><div className="absolute inset-0 dot-grid opacity-20"/><div className="relative"><div className="mx-auto w-16 h-16 grid place-items-center bg-ink dark:bg-mint text-mint dark:text-ink rounded-2xl text-3xl"><HiOutlineCloudArrowUp/></div><h2 className="mt-5 font-extrabold text-xl">{isDragActive ? 'Release to add files' : 'Drop files or folders here'}</h2><p className="text-sm text-black/35 dark:text-white/35 mt-1">Up to 500 MB each · all major formats supported</p><div className="mt-6 flex justify-center gap-3 flex-wrap"><button onClick={open} className="bg-ink text-white dark:bg-white dark:text-ink px-5 py-3 rounded-xl text-sm font-bold">Browse files</button><label className="cursor-pointer border border-black/10 dark:border-white/10 px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2"><HiOutlineFolderOpen/>Choose folder<input type="file" webkitdirectory="" multiple hidden onChange={e => onDrop([...e.target.files])}/></label></div></div>
+        <input {...getInputProps()} /><div className="absolute inset-0 dot-grid opacity-20"/><div className="relative"><div className="mx-auto w-16 h-16 grid place-items-center bg-ink dark:bg-mint text-mint dark:text-ink rounded-2xl text-3xl"><HiOutlineCloudArrowUp/></div><h2 className="mt-5 font-extrabold text-xl">{isDragActive ? 'Release to add files' : 'Drop files or folders here'}</h2><p className="text-sm text-black/35 dark:text-white/35 mt-1">Up to {maxFileSizeMb} MB each · all major formats supported</p><div className="mt-6 flex justify-center gap-3 flex-wrap"><button onClick={open} className="bg-ink text-white dark:bg-white dark:text-ink px-5 py-3 rounded-xl text-sm font-bold">Browse files</button><label className="cursor-pointer border border-black/10 dark:border-white/10 px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2"><HiOutlineFolderOpen/>Choose folder<input type="file" webkitdirectory="" multiple hidden onChange={e => onDrop([...e.target.files])}/></label></div></div>
       </div>
       {items.length > 0 && <section className="mt-6 bg-white dark:bg-[#18201f] rounded-2xl border border-black/[.05] dark:border-white/[.06] overflow-hidden">
         <div className="px-5 py-4 flex flex-wrap gap-3 items-center justify-between border-b border-black/[.06] dark:border-white/[.06]"><div><h2 className="font-extrabold">Conversion queue <span className="ml-1 text-xs text-black/30 dark:text-white/30">{items.length}</span></h2><p className="text-xs text-black/35 dark:text-white/35">{prettyBytes(items.reduce((sum, x) => sum + x.file.size, 0))} total</p></div>{compatible.length > 0 && <label className="flex items-center gap-2 text-xs font-bold text-black/45 dark:text-white/45">Convert all to <select value={batchTarget} onChange={e => setBatchTarget(e.target.value)} className="bg-[#f0f3f2] dark:bg-white/10 text-ink dark:text-white rounded-lg px-3 py-2 outline-none"><option value="">Choose format</option>{compatible.map(x => <option key={x}>{x}</option>)}</select></label>}</div>
         <div className="divide-y divide-black/[.05] dark:divide-white/[.06]">{items.map(item => <FileRow key={item.id} item={item} target={batchTarget || item.target} setTarget={target => setTarget(item.id, target)} remove={() => remove(item.id)}/>)}</div>
-        <div className="flex flex-col gap-3 bg-[#fafbfb] p-4 dark:bg-black/10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"><button onClick={() => setItems([])} disabled={processing} className="flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-black/40 dark:text-white/40 sm:justify-start"><HiOutlineTrash/>Clear queue</button><div className="grid gap-2 sm:flex">{items.some(x => x.status === 'completed') && <button onClick={downloadAll} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/10 px-5 py-2.5 text-sm font-bold dark:border-white/10"><HiArrowDownTray/>Download all</button>}{processing ? <button onClick={cancel} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-bold text-white"><HiOutlinePause/>Cancel</button> : <button onClick={convert} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-teal px-6 py-2.5 text-sm font-bold text-white"><HiOutlinePlay/>Convert {items.filter(x => x.status !== 'completed').length} file{items.length !== 1 ? 's' : ''}</button>}</div></div>
+        <div className="flex flex-col gap-3 bg-[#fafbfb] p-4 dark:bg-black/10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"><button onClick={() => setItems([])} disabled={processing || warming} className="flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-black/40 dark:text-white/40 sm:justify-start"><HiOutlineTrash/>Clear queue</button><div className="grid gap-2 sm:flex">{items.some(x => x.status === 'completed') && <button onClick={downloadAll} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/10 px-5 py-2.5 text-sm font-bold dark:border-white/10"><HiArrowDownTray/>Download all</button>}{processing ? <button onClick={cancel} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-bold text-white"><HiOutlinePause/>Cancel</button> : <button onClick={convert} disabled={warming} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-teal px-6 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70">{warming ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"/>Starting converter…</> : <><HiOutlinePlay/>Convert {items.filter(x => x.status !== 'completed').length} file{items.length !== 1 ? 's' : ''}</>}</button>}</div></div>
       </section>}
     </>}
   </div>
