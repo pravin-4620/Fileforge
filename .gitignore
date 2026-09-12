@@ -8,3 +8,5 @@ backend/uploads/*
 backend/.venv
 *.log
 .DS_Store
+__pycache__/
+*.py[cod]

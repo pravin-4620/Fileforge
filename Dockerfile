@@ -4,6 +4,8 @@ ENV NODE_ENV=production \
     PORT=5001 \
     PYTHONUNBUFFERED=1
 
+ENV PATH="/app/backend/.venv/bin:${PATH}"
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -29,8 +31,7 @@ RUN npm ci --omit=dev --workspace backend --include-workspace-root=false
 
 COPY backend ./backend
 RUN python3 -m venv /app/backend/.venv \
-  && /app/backend/.venv/bin/pip install --no-cache-dir -r /app/backend/requirements.txt \
-  && python3 -m pip install --break-system-packages --no-cache-dir yt-dlp
+  && /app/backend/.venv/bin/pip install --no-cache-dir -r /app/backend/requirements.txt
 
 WORKDIR /app/backend
 CMD ["node", "src/server.js"]
