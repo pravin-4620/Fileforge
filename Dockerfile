@@ -11,6 +11,7 @@ RUN apt-get update \
     ffmpeg \
     fonts-dejavu \
     imagemagick \
+    libheif-examples \
     libreoffice \
     p7zip-full \
     python3 \
