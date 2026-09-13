@@ -142,13 +142,14 @@ function YoutubePanel() {
     setBusy('inspect')
     setResult(null)
     try { const { data } = await api.post('/youtube/info', { url }); setVideo(data.video) }
-    catch (error) { toast.error(error.response?.data?.message || 'Could not read that YouTube link') }
+    catch (error) { toast.error(apiErrorMessage(error, 'Could not read that YouTube link')) }
     finally { setBusy('') }
   }
   const download = async () => {
+    if (!url.trim()) return toast.error('Paste a YouTube link first')
     setBusy('download')
     try { const { data } = await api.post('/youtube/download', { url, format }); setResult(data.conversion); toast.success('Media is ready to download') }
-    catch (error) { toast.error(error.response?.data?.message || 'YouTube download failed') }
+    catch (error) { toast.error(apiErrorMessage(error, 'YouTube download failed')) }
     finally { setBusy('') }
   }
   const saveResult = async () => {
@@ -159,6 +160,7 @@ function YoutubePanel() {
     <div className="border-b border-black/[.06] p-5 dark:border-white/[.06] sm:p-6 md:p-8"><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-500 text-white"><HiOutlinePlay className="text-xl"/></span><div className="min-w-0"><h2 className="text-lg font-extrabold sm:text-xl">YouTube downloader</h2><p className="text-xs text-black/40 dark:text-white/40">Single public videos · playlists are disabled</p></div></div><div className="mt-6 flex flex-col gap-2 sm:flex-row"><input type="url" value={url} onChange={e => { setUrl(e.target.value); setVideo(null); setResult(null) }} onKeyDown={e => e.key === 'Enter' && inspect()} placeholder="https://www.youtube.com/watch?v=…" className="min-h-12 min-w-0 flex-1 rounded-xl bg-[#f1f4f3] px-4 py-3.5 outline-none focus:ring-2 focus:ring-teal/30 dark:bg-white/[.06]"/><button onClick={inspect} disabled={Boolean(busy)} className="min-h-12 rounded-xl bg-ink px-6 py-3 font-bold text-white disabled:opacity-50 dark:bg-white dark:text-ink">{busy === 'inspect' ? 'Checking…' : 'Check link'}</button></div></div>
     {video && <div className="p-5 md:p-8 min-w-0 overflow-hidden">
       <div className="min-w-0"><p className="font-extrabold text-lg md:text-xl break-words">{video.title}</p><p className="text-sm text-black/40 dark:text-white/40 mt-1">{video.uploader}{video.duration ? ` · ${Math.floor(video.duration / 60)}:${String(video.duration % 60).padStart(2, '0')}` : ''}</p></div>
+      {video.notice && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">{video.notice}</div>}
       <fieldset className="mt-6 min-w-0"><legend className="mb-3 text-xs font-extrabold uppercase tracking-[.12em] text-black/40 dark:text-white/40">Choose output format</legend><div className="youtube-format-grid">{[['mp4','Video'],['webm','Video'],['mp3','Audio'],['m4a','Audio']].map(([value,type]) => <button type="button" key={value} onClick={() => { setFormat(value); setResult(null) }} className={`min-h-14 min-w-0 rounded-xl border-2 px-4 py-3 text-left transition ${format === value ? 'border-teal bg-teal/10 text-teal' : 'border-black/[.07] hover:border-black/20 dark:border-white/10 dark:hover:border-white/20'}`}><span className="mono block text-sm font-bold">{value.toUpperCase()}</span><span className="mt-0.5 block text-xs opacity-55">{type} format</span></button>)}</div></fieldset>
       {video.thumbnail && <div className="mt-6 w-full overflow-hidden rounded-2xl bg-black/5"><img src={video.thumbnail} alt="Video thumbnail" className="block w-full h-auto max-h-[340px] aspect-video object-cover"/></div>}
       <div className="mt-6 flex flex-col md:flex-row gap-3 md:items-center justify-between"><p className="text-xs text-black/35 dark:text-white/35 max-w-lg">Download only content you own or have permission to save.</p>{result ? <button onClick={saveResult} className="w-full md:w-auto shrink-0 bg-mint text-ink rounded-xl px-6 py-3 font-bold flex items-center justify-center gap-2"><HiArrowDownTray/>Download {format.toUpperCase()}</button> : <button onClick={download} disabled={Boolean(busy)} className="w-full md:w-auto shrink-0 bg-teal text-white rounded-xl px-6 py-3 font-bold flex items-center justify-center gap-2 disabled:opacity-50">{busy === 'download' ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Preparing media…</> : <><HiArrowDownTray/>Prepare {format.toUpperCase()}</>}</button>}</div>

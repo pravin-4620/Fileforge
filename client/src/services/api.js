@@ -17,10 +17,11 @@ export async function ensureApiReady() {
 
 export function apiErrorMessage(error, fallback = 'Request failed') {
   if (error.code === 'ERR_CANCELED') return 'Cancelled'
+  if (error.response?.data?.message) return error.response.data.message
   if ([502, 503, 504].includes(error.response?.status) || !error.response) {
     return 'The conversion server is starting or temporarily unavailable. Wait a moment, then retry.'
   }
-  return error.response?.data?.message || fallback
+  return fallback
 }
 
 export default api

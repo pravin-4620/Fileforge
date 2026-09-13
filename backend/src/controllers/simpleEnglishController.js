@@ -12,5 +12,5 @@ export const simpleEnglishRequestSchema = z.object({
 export async function createSimpleEnglishPrompt(req, res) {
   const { input } = simpleEnglishRequestSchema.parse(req.body)
   const result = await generateSimpleEnglish(input)
-  res.json({ success: true, prompt: result.prompt, filename: result.filename })
+  res.json({ success: true, prompt: result.prompt, filename: result.filename, model: result.model, fallback: result.fallback })
 }

@@ -12,7 +12,7 @@ import {
   HiOutlineSparkles,
   HiOutlineTrash,
 } from 'react-icons/hi2'
-import api from '../services/api'
+import api, { apiErrorMessage } from '../services/api'
 
 const maxCharacters = Math.max(1000, Number(import.meta.env.VITE_SIMPLE_ENGLISH_MAX_INPUT_CHARS || 50_000))
 const starter = "I'm building a platform for... The main problem is... Users should be able to... I need it to use..."
@@ -41,6 +41,7 @@ export default function SimpleEnglish() {
   const [input, setInput] = useState('')
   const [prompt, setPrompt] = useState('')
   const [filename, setFilename] = useState('simple-english-prompt.md')
+  const [engine, setEngine] = useState('')
   const [loading, setLoading] = useState(false)
   const [raw, setRaw] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -59,10 +60,11 @@ export default function SimpleEnglish() {
       if (!data?.prompt) throw new Error('Invalid prompt response')
       setPrompt(data.prompt)
       setFilename(data.filename || 'simple-english-prompt.md')
+      setEngine(data.fallback ? 'Structured locally' : 'Generated with AI')
       setRaw(false)
       toast.success('Your AI-ready prompt is ready')
     } catch (error) {
-      toast.error(promptErrorMessage(error))
+      toast.error(apiErrorMessage(error, promptErrorMessage(error)))
     } finally {
       setLoading(false)
     }
@@ -103,6 +105,7 @@ export default function SimpleEnglish() {
     setInput('')
     setPrompt('')
     setFilename('simple-english-prompt.md')
+    setEngine('')
     setRaw(false)
     setCopied(false)
   }
@@ -123,7 +126,7 @@ export default function SimpleEnglish() {
       </section>
 
       {prompt && <section className="min-w-0 overflow-hidden rounded-2xl border border-black/[.06] bg-white shadow-[0_18px_55px_rgba(21,27,26,.04)] dark:border-white/[.06] dark:bg-[#18201f]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/[.06] px-4 py-4 dark:border-white/[.06] sm:px-6"><div><p className="mono text-[11px] font-bold tracking-[.14em] text-teal">02 · READY</p><p className="mt-1 max-w-[260px] truncate text-xs text-black/35 dark:text-white/35" title={filename}>{filename}</p></div><button onClick={() => setRaw(value => !value)} className="flex min-h-10 items-center gap-2 rounded-lg bg-black/[.04] px-3 text-xs font-bold dark:bg-white/[.06]"><HiOutlineCodeBracketSquare/>{raw ? 'Preview' : 'Raw Markdown'}</button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/[.06] px-4 py-4 dark:border-white/[.06] sm:px-6"><div><p className="mono text-[11px] font-bold tracking-[.14em] text-teal">02 · READY</p><p className="mt-1 max-w-[260px] truncate text-xs text-black/35 dark:text-white/35" title={filename}>{filename}{engine ? ` · ${engine}` : ''}</p></div><button onClick={() => setRaw(value => !value)} className="flex min-h-10 items-center gap-2 rounded-lg bg-black/[.04] px-3 text-xs font-bold dark:bg-white/[.06]"><HiOutlineCodeBracketSquare/>{raw ? 'Preview' : 'Raw Markdown'}</button></div>
         <div className="max-h-[650px] min-h-[420px] overflow-auto p-5 sm:p-7">{raw ? <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-6 text-black/70 dark:text-white/70">{prompt}</pre> : <div className="markdown-preview"><ReactMarkdown remarkPlugins={[remarkGfm]} components={{a: props => <a {...props} target="_blank" rel="noreferrer"/>}}>{prompt}</ReactMarkdown></div>}</div>
         <div className="grid gap-2 border-t border-black/[.06] bg-[#fafbfb] p-4 dark:border-white/[.06] dark:bg-black/10 sm:grid-cols-2 xl:flex xl:flex-wrap"><button onClick={copy} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/10 px-4 text-sm font-bold dark:border-white/10">{copied ? <HiCheck className="text-teal"/> : <HiOutlineClipboardDocument/>}{copied ? 'Copied' : 'Copy Prompt'}</button><button onClick={download} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-ink px-4 text-sm font-bold text-white dark:bg-white dark:text-ink"><HiArrowDownTray/>Download .md</button><button onClick={generate} disabled={loading} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/10 px-4 text-sm font-bold disabled:opacity-50 dark:border-white/10"><HiOutlineArrowPath/>Generate Again</button><button onClick={clear} disabled={loading} className="flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-black/40 dark:text-white/40"><HiOutlineTrash/>Clear</button></div>
       </section>}

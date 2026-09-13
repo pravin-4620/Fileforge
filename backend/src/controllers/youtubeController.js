@@ -7,6 +7,7 @@ import { runCapture } from '../converters/base.js'
 const formats = ['mp4', 'webm', 'mp3', 'm4a']
 const hosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'])
 const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
+const extractorArgs = process.env.YTDLP_EXTRACTOR_ARGS || 'youtube:player_client=default,-web_safari'
 
 function validateUrl(raw) {
   let parsed
@@ -24,21 +25,38 @@ const baseArgs = () => {
     '--no-playlist',
     '--js-runtimes',
     jsRuntime,
+    '--extractor-args',
+    extractorArgs,
+    '--socket-timeout',
+    '30',
+    '--retries',
+    '2',
+    '--fragment-retries',
+    '2',
   ]
+  if (process.env.YTDLP_FORCE_IPV4 !== 'false') args.push('--force-ipv4')
   if (process.env.YTDLP_COOKIES_PATH) args.push('--cookies', process.env.YTDLP_COOKIES_PATH)
   return args
 }
 
+function isYouTubeBotBlock(message) {
+  return message.includes('Sign in to confirm') || message.includes('--cookies-from-browser') || message.includes('--cookies')
+}
+
+function isJavaScriptRuntimeError(message) {
+  return message.includes('JS runtime') || message.includes('JavaScript')
+}
+
 function youtubeError(error) {
   const message = error?.message || ''
-  if (message.includes('Sign in to confirm') || message.includes('--cookies-from-browser') || message.includes('--cookies')) {
+  if (isYouTubeBotBlock(message)) {
     return Object.assign(
-      new Error('YouTube blocked this server as automated traffic. Add a Render secret file for YouTube cookies and set YTDLP_COOKIES_PATH, then retry.'),
-      { status: 422 },
+      new Error('YouTube blocked the hosted server for this video. Add a Render secret file with YouTube cookies, set YTDLP_COOKIES_PATH, then retry.'),
+      { status: 422, expose: true },
     )
   }
-  if (message.includes('JS runtime') || message.includes('JavaScript')) {
-    return Object.assign(new Error('YouTube needs a JavaScript runtime for this link. The backend image must be redeployed with the latest downloader runtime.'), { status: 503 })
+  if (isJavaScriptRuntimeError(message)) {
+    return Object.assign(new Error('YouTube needs yt-dlp EJS support and a JavaScript runtime. Redeploy the backend image, then retry.'), { status: 503, expose: true })
   }
   return error
 }
@@ -49,11 +67,34 @@ const safeInfo = info => ({
   uploader: info.uploader,
   thumbnail: info.thumbnail,
   webpageUrl: info.webpage_url,
+  limited: Boolean(info.limited),
+  notice: info.notice,
 })
 
 async function getInfo(url) {
   const { stdout } = await runCapture(binary(), [...baseArgs(), '--skip-download', '--dump-single-json', url], { timeout: 90_000 })
   return JSON.parse(stdout.trim().split('\n').at(-1))
+}
+
+async function getPublicInfo(url) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+    const response = await fetch(endpoint, { signal: controller.signal })
+    if (!response.ok) throw Object.assign(new Error(`YouTube public metadata failed with HTTP ${response.status}`), { status: 422 })
+    const info = await response.json()
+    return {
+      title: info.title || 'YouTube video',
+      uploader: info.author_name,
+      thumbnail: info.thumbnail_url,
+      webpage_url: url,
+      limited: true,
+      notice: 'Metadata loaded, but Render may still need YouTube cookies before download works.',
+    }
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export async function youtubeInfo(req,res) {
@@ -62,7 +103,9 @@ export async function youtubeInfo(req,res) {
   try {
     info = await getInfo(url)
   } catch (error) {
-    throw youtubeError(error)
+    const message = error?.message || ''
+    if (isYouTubeBotBlock(message) || isJavaScriptRuntimeError(message)) info = await getPublicInfo(url)
+    else throw youtubeError(error)
   }
   res.json({ video: safeInfo(info), formats })
 }

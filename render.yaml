@@ -26,6 +26,14 @@ services:
         value: "1"
       - key: GOOGLE_CLIENT_ID
         sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: openai/gpt-4o-mini
+      - key: OPENROUTER_SITE_URL
+        value: https://fileforge-client.vercel.app
+      - key: OPENROUTER_APP_TITLE
+        value: FileForge
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
@@ -34,9 +42,19 @@ services:
         value: "50000"
       - key: SIMPLE_ENGLISH_MAX_OUTPUT_TOKENS
         value: "6000"
+      - key: SIMPLE_ENGLISH_ALLOW_FALLBACK
+        value: "true"
       - key: ONLYOFFICE_URL
         sync: false
       - key: ONLYOFFICE_INTERNAL_URL
         sync: false
       - key: ONLYOFFICE_JWT_SECRET
+        sync: false
+      - key: YTDLP_JS_RUNTIME
+        value: node
+      - key: YTDLP_EXTRACTOR_ARGS
+        value: youtube:player_client=default,-web_safari
+      - key: YTDLP_FORCE_IPV4
+        value: "true"
+      - key: YTDLP_COOKIES_PATH
         sync: false

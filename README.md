@@ -103,14 +103,19 @@ The included deployment files are set up for Vercel hosting the React client and
    MONGODB_URI=<your MongoDB Atlas URI>
    CLIENT_URL=https://fileforge-client.vercel.app,http://localhost:5173
    GOOGLE_CLIENT_ID=<your Google OAuth Web Client ID>
-   OPENAI_API_KEY=<your server-side OpenAI API key>
-   OPENAI_MODEL=gpt-5-mini
+   OPENROUTER_API_KEY=<your OpenRouter API key>
+   OPENROUTER_MODEL=openai/gpt-4o-mini
+   OPENROUTER_SITE_URL=https://fileforge-client.vercel.app
+   OPENROUTER_APP_TITLE=FileForge
+   SIMPLE_ENGLISH_ALLOW_FALLBACK=true
    YTDLP_JS_RUNTIME=node
+   YTDLP_EXTRACTOR_ARGS=youtube:player_client=default,-web_safari
+   YTDLP_FORCE_IPV4=true
    ```
 
    Keep `SERVE_CLIENT=false` on Render because Vercel serves the frontend.
 
-   YouTube may block cloud-hosted Render IPs with a "Sign in to confirm you're not a bot" challenge. If that happens, export cookies from a dedicated YouTube account into `youtube-cookies.txt`, add it to Render as a Secret File, and set:
+   YouTube may block cloud-hosted Render IPs with a "Sign in to confirm you're not a bot" challenge. The app can still show public video metadata through a fallback, but downloads may need cookies. If that happens, export cookies from a dedicated YouTube account into `youtube-cookies.txt`, add it to Render as a Secret File, and set:
 
    ```text
    YTDLP_COOKIES_PATH=/etc/secrets/youtube-cookies.txt
